@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
 fun MainAppContent(viewModel: ExpenseViewModel) {
     var currentRoute by remember { mutableStateOf(Screen.Dashboard.route) }
     var showAddModal by remember { mutableStateOf(false) }
+    var initialType by remember { mutableStateOf(Expense.TYPE_SEND) }
     var expenseToEdit by remember { mutableStateOf<Expense?>(null) }
 
     Scaffold(
@@ -69,6 +70,7 @@ fun MainAppContent(viewModel: ExpenseViewModel) {
             FloatingActionButton(
                 onClick = {
                     expenseToEdit = null
+                    initialType = Expense.TYPE_SEND
                     showAddModal = true
                 },
                 shape = CircleShape,
@@ -96,8 +98,14 @@ fun MainAppContent(viewModel: ExpenseViewModel) {
             when (currentRoute) {
                 Screen.Dashboard.route -> DashboardScreen(
                     viewModel = viewModel,
-                    onAddExpenseClick = {
+                    onSendMoneyClick = {
                         expenseToEdit = null
+                        initialType = Expense.TYPE_SEND
+                        showAddModal = true
+                    },
+                    onReceiveMoneyClick = {
+                        expenseToEdit = null
+                        initialType = Expense.TYPE_RECEIVE
                         showAddModal = true
                     },
                     onViewAllClick = { currentRoute = Screen.Expenses.route },
@@ -126,6 +134,7 @@ fun MainAppContent(viewModel: ExpenseViewModel) {
                 AddEditExpenseScreen(
                     viewModel = viewModel,
                     expenseToEdit = expenseToEdit,
+                    initialType = initialType,
                     onDismiss = { showAddModal = false }
                 )
             }

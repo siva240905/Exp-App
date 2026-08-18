@@ -53,27 +53,39 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // Total expenses sum
-    val totalExpenses: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
-        list.sumOf { it.amount }
+    // Net balance = Total Received - Total Sent
+    val netBalance: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
+        val received = list.filter { it.type == Expense.TYPE_RECEIVE }.sumOf { it.amount }
+        val sent = list.filter { it.type == Expense.TYPE_SEND }.sumOf { it.amount }
+        received - sent
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
 
-    // Category breakdown totals
+    // Total Sent (Expenses)
+    val totalSent: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
+        list.filter { it.type == Expense.TYPE_SEND }.sumOf { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
+
+    // Total Received (Income)
+    val totalReceived: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
+        list.filter { it.type == Expense.TYPE_RECEIVE }.sumOf { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
+
+    // Category breakdown totals for Sent expenses
     val categoryTotals: StateFlow<Map<String, Double>> = repository.expenses.combine(_searchQuery) { list, _ ->
         list.groupBy { it.category }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
-    // Daily total for today
+    // Today's Sent total
     val todayTotal: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        list.filter { it.date == todayStr }.sumOf { it.amount }
+        list.filter { it.date == todayStr && it.type == Expense.TYPE_SEND }.sumOf { it.amount }
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
 
-    // Current month total
+    // Current month Sent total
     val currentMonthTotal: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
         val currentMonthPrefix = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
-        list.filter { it.date.startsWith(currentMonthPrefix) }.sumOf { it.amount }
+        list.filter { it.date.startsWith(currentMonthPrefix) && it.type == Expense.TYPE_SEND }.sumOf { it.amount }
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
 
     fun setSearchQuery(query: String) {
@@ -97,7 +109,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         category: String,
         description: String,
         date: String,
-        paymentMethod: String
+        paymentMethod: String,
+        type: String = Expense.TYPE_SEND
     ) {
         val dateValue = if (date.isBlank()) {
             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -107,9 +120,10 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
             id = UUID.randomUUID().toString(),
             amount = amount,
             category = category,
-            description = description.ifBlank { category },
+            description = description.ifBlank { if (type == Expense.TYPE_RECEIVE) "Money Received" else category },
             date = dateValue,
-            paymentMethod = paymentMethod
+            paymentMethod = paymentMethod,
+            type = type
         )
         repository.addExpense(newExpense)
     }
@@ -123,21 +137,24 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun saveCredentials(token: String, id: String) {
-        secureStorage.saveGithubToken(token)
-        secureStorage.saveGistId(id)
-        githubToken.value = token
-        gistId.value = id
-        if (token.isNotBlank() && id.isNotBlank()) {
+        val cleanToken = token.trim()
+        val cleanId = id.trim()
+        secureStorage.saveGithubToken(cleanToken)
+        secureStorage.saveGistId(cleanId)
+        githubToken.value = cleanToken
+        gistId.value = cleanId
+        if (cleanToken.isNotBlank() && cleanId.isNotBlank()) {
             syncFromGist()
         }
     }
 
     fun createNewGist(token: String, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch {
-            val result = repository.createNewGist(token)
+            val cleanToken = token.trim()
+            val result = repository.createNewGist(cleanToken)
             if (result.isSuccess) {
                 val newId = result.getOrNull() ?: ""
-                githubToken.value = token
+                githubToken.value = cleanToken
                 gistId.value = newId
                 onResult(true, "Successfully created Gist: $newId")
             } else {

@@ -25,5 +25,13 @@ data class Expense(
     val date: String = "",
     
     @SerializedName("paymentMethod")
-    val paymentMethod: String = "UPI"
-)
+    val paymentMethod: String = "UPI",
+
+    @SerializedName("type")
+    val type: String = TYPE_SEND
+) {
+    companion object {
+        const val TYPE_SEND = "SEND"
+        const val TYPE_RECEIVE = "RECEIVE"
+    }
+}

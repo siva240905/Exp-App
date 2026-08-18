@@ -18,21 +18,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowOutward
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -62,11 +58,14 @@ import com.coinflow.expensetracker.ui.viewmodel.ExpenseViewModel
 @Composable
 fun DashboardScreen(
     viewModel: ExpenseViewModel,
-    onAddExpenseClick: () -> Unit,
+    onSendMoneyClick: () -> Unit,
+    onReceiveMoneyClick: () -> Unit,
     onViewAllClick: () -> Unit,
     onEditExpenseClick: (Expense) -> Unit
 ) {
-    val totalExpenses by viewModel.totalExpenses.collectAsState()
+    val netBalance by viewModel.netBalance.collectAsState()
+    val totalSent by viewModel.totalSent.collectAsState()
+    val totalReceived by viewModel.totalReceived.collectAsState()
     val todayTotal by viewModel.todayTotal.collectAsState()
     val syncState by viewModel.syncState.collectAsState()
     val expenses by viewModel.filteredExpenses.collectAsState()
@@ -139,7 +138,7 @@ fun DashboardScreen(
             )
         }
 
-        // Balance Card
+        // Total Balance Card
         item {
             GlassCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -149,7 +148,7 @@ fun DashboardScreen(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "TOTAL EXPENSES",
+                            text = "TOTAL NET BALANCE",
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
                             color = TextVariant,
@@ -167,7 +166,7 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = viewModel.formatINR(totalExpenses),
+                        text = viewModel.formatINR(netBalance),
                         fontSize = 34.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -176,84 +175,102 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.TrendingUp,
-                            contentDescription = "Trending",
-                            tint = SecondaryPinkFixed,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.TrendingUp,
+                                contentDescription = "Spent",
+                                tint = SecondaryPinkFixed,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Spent: ${viewModel.formatINR(totalSent)}",
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = SecondaryPinkFixed
+                            )
+                        }
+
                         Text(
-                            text = "Today: ${viewModel.formatINR(todayTotal)}",
-                            fontSize = 13.sp,
+                            text = "Received: ${viewModel.formatINR(totalReceived)}",
+                            fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = SecondaryPinkFixed
+                            color = PrimaryCyanBright
                         )
                     }
                 }
             }
         }
 
-        // Quick Actions (Sync & Add)
+        // Quick Actions Bento Grid (SEND & RECEIVE MONEY)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Send Money Button
                 GlassCard(
                     modifier = Modifier.weight(1f),
-                    onClick = { viewModel.syncFromGist() }
+                    onClick = onSendMoneyClick
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(SurfaceContainerHigh),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Sync",
+                                imageVector = Icons.Default.Send,
+                                contentDescription = "Send Money",
                                 tint = PrimaryCyanBright,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Sync Gist",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
+                            text = "Send",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                     }
                 }
 
+                // Receive Money Button
                 GlassCard(
                     modifier = Modifier.weight(1f),
-                    onClick = onAddExpenseClick
+                    onClick = onReceiveMoneyClick
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(SurfaceContainerHigh),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Add",
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Receive Money",
                                 tint = SecondaryPinkFixed,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Add Entry",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
+                            text = "Receive",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                     }
@@ -311,16 +328,16 @@ fun DashboardScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No expenses added yet",
+                            text = "No transactions logged yet",
                             color = TextVariant,
                             fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
-                            onClick = onAddExpenseClick,
+                            onClick = onSendMoneyClick,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyanBright)
                         ) {
-                            Text(text = "Add First Expense", color = BackgroundDark)
+                            Text(text = "Log First Entry", color = BackgroundDark)
                         }
                     }
                 }
@@ -345,12 +362,10 @@ fun ExpenseItemCard(
     formatINR: (Double) -> String,
     onClick: () -> Unit
 ) {
-    val categoryIcon = when (expense.category.lowercase()) {
-        "food" -> Icons.Default.Fastfood
-        "fuel" -> Icons.Default.LocalGasStation
-        "shop", "shopping" -> Icons.Default.ShoppingBag
-        else -> Icons.Default.ArrowOutward
-    }
+    val isReceive = expense.type == Expense.TYPE_RECEIVE
+    val icon = if (isReceive) Icons.Default.ArrowDownward else Icons.Default.ArrowOutward
+    val amountPrefix = if (isReceive) "+" else "-"
+    val amountColor = if (isReceive) PrimaryCyanBright else TextPrimary
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
@@ -371,9 +386,9 @@ fun ExpenseItemCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = categoryIcon,
+                        imageVector = icon,
                         contentDescription = expense.category,
-                        tint = TextPrimary,
+                        tint = if (isReceive) PrimaryCyanBright else TextPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -394,11 +409,11 @@ fun ExpenseItemCard(
             }
 
             Text(
-                text = "-${formatINR(expense.amount)}",
+                text = "$amountPrefix${formatINR(expense.amount)}",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                color = TextPrimary
+                color = amountColor
             )
         }
     }

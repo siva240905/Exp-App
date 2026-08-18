@@ -40,7 +40,6 @@ class ExpenseRepository(
         if (lastSync.isNotEmpty()) {
             _syncState.value = SyncState.Synced(lastSync)
         }
-        // Auto-fetch on startup if credentials exist
         if (hasCredentials()) {
             syncFromGist()
         }
@@ -69,13 +68,28 @@ class ExpenseRepository(
     }
 
     private fun getAuthHeader(): String {
-        val token = secureStorage.getGithubToken()
-        return if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
+        val token = secureStorage.getGithubToken().trim()
+        if (token.isBlank()) return ""
+        return when {
+            token.startsWith("Bearer ", ignoreCase = true) -> token
+            token.startsWith("token ", ignoreCase = true) -> token
+            token.startsWith("github_pat_") -> "Bearer $token"
+            else -> "token $token"
+        }
+    }
+
+    private fun parseHttpError(code: Int, rawError: String?): String {
+        return when (code) {
+            401 -> "Invalid GitHub Token (HTTP 401 Unauthorized). Please check your PAT in Settings."
+            404 -> "Gist Not Found (HTTP 404). Check Gist ID or tap Auto-Create Gist."
+            403 -> "Access Denied (HTTP 403). Ensure token has 'gist' permission scope."
+            else -> "HTTP $code: ${rawError ?: "GitHub API Error"}"
+        }
     }
 
     fun syncFromGist() {
         if (!hasCredentials()) {
-            _syncState.value = SyncState.Failed("GitHub Token or Gist ID missing")
+            _syncState.value = SyncState.Failed("GitHub Token or Gist ID missing in Settings")
             return
         }
 
@@ -91,8 +105,8 @@ class ExpenseRepository(
 
                     if (file != null && !file.content.isNullOrBlank()) {
                         val container = gson.fromJson(file.content, ExpenseContainer::class.java)
-                        val newList = (container.expenses ?: emptyList()).sortedByDescending { it.date }
-                        
+                        val newList = (container?.expenses ?: emptyList()).sortedByDescending { it.date }
+
                         withContext(Dispatchers.Main) {
                             _expenses.value = newList
                             saveLocalCache(newList)
@@ -101,15 +115,18 @@ class ExpenseRepository(
                             _syncState.value = SyncState.Synced(nowStr)
                         }
                     } else {
-                        // Empty or non-existent expense file, push current local data
                         pushToGistInternal()
                     }
                 } else {
-                    val errorMsg = "HTTP ${response.code()}: ${response.errorBody()?.string() ?: "Failed to fetch Gist"}"
-                    _syncState.value = SyncState.Failed(errorMsg)
+                    val errorMsg = parseHttpError(response.code(), response.errorBody()?.string())
+                    withContext(Dispatchers.Main) {
+                        _syncState.value = SyncState.Failed(errorMsg)
+                    }
                 }
             } catch (e: Exception) {
-                _syncState.value = SyncState.Failed(e.localizedMessage ?: "Network connection error")
+                withContext(Dispatchers.Main) {
+                    _syncState.value = SyncState.Failed(e.localizedMessage ?: "Network connection error")
+                }
             }
         }
     }
@@ -122,7 +139,7 @@ class ExpenseRepository(
 
     private suspend fun pushToGistInternal() {
         if (!hasCredentials()) {
-            _syncState.value = SyncState.Failed("GitHub Token or Gist ID missing")
+            _syncState.value = SyncState.Failed("GitHub Token or Gist ID missing in Settings")
             return
         }
 
@@ -146,7 +163,7 @@ class ExpenseRepository(
                     _syncState.value = SyncState.Synced(nowStr)
                 }
             } else {
-                val errorMsg = "HTTP ${response.code()}: ${response.errorBody()?.string() ?: "Failed to update Gist"}"
+                val errorMsg = parseHttpError(response.code(), response.errorBody()?.string())
                 withContext(Dispatchers.Main) {
                     _syncState.value = SyncState.Failed(errorMsg)
                 }
@@ -160,7 +177,14 @@ class ExpenseRepository(
 
     suspend fun createNewGist(token: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val formattedToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
+            val cleanToken = token.trim()
+            val formattedToken = when {
+                cleanToken.startsWith("Bearer ", ignoreCase = true) -> cleanToken
+                cleanToken.startsWith("token ", ignoreCase = true) -> cleanToken
+                cleanToken.startsWith("github_pat_") -> "Bearer $cleanToken"
+                else -> "token $cleanToken"
+            }
+
             val container = ExpenseContainer(expenses = _expenses.value)
             val jsonContent = gson.toJson(container)
 
@@ -173,14 +197,17 @@ class ExpenseRepository(
             val response = apiService.createGist(formattedToken, createRequest)
             if (response.isSuccessful && response.body() != null) {
                 val gistId = response.body()!!.id
-                secureStorage.saveGithubToken(token)
+                secureStorage.saveGithubToken(cleanToken)
                 secureStorage.saveGistId(gistId)
                 val nowStr = getCurrentTimestamp()
                 secureStorage.saveLastSyncTime(nowStr)
-                _syncState.value = SyncState.Synced(nowStr)
+                withContext(Dispatchers.Main) {
+                    _syncState.value = SyncState.Synced(nowStr)
+                }
                 Result.success(gistId)
             } else {
-                Result.failure(Exception("Failed to create Gist (HTTP ${response.code()})"))
+                val errorMsg = parseHttpError(response.code(), response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)

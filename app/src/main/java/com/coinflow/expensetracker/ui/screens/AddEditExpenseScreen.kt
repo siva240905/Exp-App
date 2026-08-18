@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -46,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -74,9 +75,11 @@ import java.util.Locale
 fun AddEditExpenseScreen(
     viewModel: ExpenseViewModel,
     expenseToEdit: Expense? = null,
+    initialType: String = Expense.TYPE_SEND,
     onDismiss: () -> Unit
 ) {
     var amountStr by remember { mutableStateOf(expenseToEdit?.amount?.let { if (it == 0.0) "0" else it.toString() } ?: "0") }
+    var selectedType by remember { mutableStateOf(expenseToEdit?.type ?: initialType) }
     var selectedCategory by remember { mutableStateOf(expenseToEdit?.category ?: "Food") }
     var selectedPaymentMethod by remember { mutableStateOf(expenseToEdit?.paymentMethod ?: "UPI") }
     var description by remember { mutableStateOf(expenseToEdit?.description ?: "") }
@@ -148,6 +151,72 @@ fun AddEditExpenseScreen(
                 }
             }
 
+            // Type Toggle (SEND vs RECEIVE)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val isSend = selectedType == Expense.TYPE_SEND
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSend) PrimaryCyanBright.copy(alpha = 0.25f) else SurfaceContainer)
+                        .border(1.dp, if (isSend) PrimaryCyanBright else BorderOutline, RoundedCornerShape(12.dp))
+                        .clickable { selectedType = Expense.TYPE_SEND }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowOutward,
+                            contentDescription = "Send",
+                            tint = if (isSend) PrimaryCyanBright else TextVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "SEND (Debit)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (isSend) PrimaryCyanBright else TextVariant
+                        )
+                    }
+                }
+
+                val isReceive = selectedType == Expense.TYPE_RECEIVE
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isReceive) SecondaryPink.copy(alpha = 0.25f) else SurfaceContainer)
+                        .border(1.dp, if (isReceive) SecondaryPink else BorderOutline, RoundedCornerShape(12.dp))
+                        .clickable { selectedType = Expense.TYPE_RECEIVE }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDownward,
+                            contentDescription = "Receive",
+                            tint = if (isReceive) SecondaryPink else TextVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "RECEIVE (Credit)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (isReceive) SecondaryPink else TextVariant
+                        )
+                    }
+                }
+            }
+
             // Amount Display & Category Selection
             Column(
                 modifier = Modifier
@@ -163,7 +232,7 @@ fun AddEditExpenseScreen(
                     letterSpacing = 1.5.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -182,11 +251,11 @@ fun AddEditExpenseScreen(
                         fontSize = 44.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
-                        color = PrimaryCyanBright
+                        color = if (selectedType == Expense.TYPE_RECEIVE) SecondaryPink else PrimaryCyanBright
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Category Chips
                 Text(
@@ -197,7 +266,7 @@ fun AddEditExpenseScreen(
                     letterSpacing = 1.5.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -236,7 +305,7 @@ fun AddEditExpenseScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Payment Method Selector
                 LazyRow(
@@ -266,7 +335,7 @@ fun AddEditExpenseScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Description Input
                 OutlinedTextField(
@@ -290,7 +359,7 @@ fun AddEditExpenseScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(SurfaceContainer.copy(alpha = 0.5f))
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 CustomKeypad(
                     onKeyClick = { key ->
@@ -310,7 +379,7 @@ fun AddEditExpenseScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
                     onClick = {
@@ -322,7 +391,8 @@ fun AddEditExpenseScreen(
                                     category = selectedCategory,
                                     description = description,
                                     date = dateStr,
-                                    paymentMethod = selectedPaymentMethod
+                                    paymentMethod = selectedPaymentMethod,
+                                    type = selectedType
                                 )
                             } else {
                                 viewModel.updateExpense(
@@ -330,7 +400,8 @@ fun AddEditExpenseScreen(
                                         amount = amount,
                                         category = selectedCategory,
                                         description = description,
-                                        paymentMethod = selectedPaymentMethod
+                                        paymentMethod = selectedPaymentMethod,
+                                        type = selectedType
                                     )
                                 )
                             }
@@ -345,9 +416,11 @@ fun AddEditExpenseScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyanBright)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedType == Expense.TYPE_RECEIVE) SecondaryPink else PrimaryCyanBright
+                    )
                 ) {
                     Text(
                         text = if (expenseToEdit == null) "CONFIRM TRANSACTION" else "SAVE CHANGES",
@@ -361,7 +434,7 @@ fun AddEditExpenseScreen(
             }
         }
 
-        // Success State Overlay Screen (Matching design spec)
+        // Success State Overlay Screen
         AnimatedVisibility(
             visible = showSuccessOverlay,
             enter = fadeIn(),

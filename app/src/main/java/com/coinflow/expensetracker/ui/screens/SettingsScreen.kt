@@ -55,6 +55,7 @@ import com.coinflow.expensetracker.ui.theme.BorderOutline
 import com.coinflow.expensetracker.ui.theme.ErrorRed
 import com.coinflow.expensetracker.ui.theme.PrimaryCyanBright
 import com.coinflow.expensetracker.ui.theme.SecondaryPink
+import com.coinflow.expensetracker.ui.theme.SurfaceContainerHigh
 import com.coinflow.expensetracker.ui.theme.TextPrimary
 import com.coinflow.expensetracker.ui.theme.TextVariant
 import com.coinflow.expensetracker.ui.viewmodel.ExpenseViewModel

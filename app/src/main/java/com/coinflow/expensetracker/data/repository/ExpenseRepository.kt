@@ -55,7 +55,7 @@ class ExpenseRepository(
         if (cachedJson.isNotBlank()) {
             try {
                 val container = gson.fromJson(cachedJson, ExpenseContainer::class.java)
-                _expenses.value = container.expenses.sortedByDescending { it.date }
+                _expenses.value = (container?.expenses ?: emptyList()).sortedByDescending { it.date }
             } catch (e: Exception) {
                 _expenses.value = emptyList()
             }

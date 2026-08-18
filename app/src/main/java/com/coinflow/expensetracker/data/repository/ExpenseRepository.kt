@@ -67,22 +67,27 @@ class ExpenseRepository(
         secureStorage.saveCachedExpensesJson(json)
     }
 
-    private fun getAuthHeader(): String {
-        val token = secureStorage.getGithubToken().trim()
-        if (token.isBlank()) return ""
-        return when {
-            token.startsWith("Bearer ", ignoreCase = true) -> token
-            token.startsWith("token ", ignoreCase = true) -> token
-            token.startsWith("github_pat_") -> "Bearer $token"
-            else -> "token $token"
-        }
+    private fun getPrimaryAuthHeader(token: String = secureStorage.getGithubToken()): String {
+        val clean = token.trim()
+            .replace("^(token|bearer)\\s+".toRegex(RegexOption.IGNORE_CASE), "")
+            .trim()
+        if (clean.isBlank()) return ""
+        return if (clean.startsWith("github_pat_")) "Bearer $clean" else "token $clean"
+    }
+
+    private fun getFallbackAuthHeader(token: String = secureStorage.getGithubToken()): String {
+        val clean = token.trim()
+            .replace("^(token|bearer)\\s+".toRegex(RegexOption.IGNORE_CASE), "")
+            .trim()
+        if (clean.isBlank()) return ""
+        return if (clean.startsWith("github_pat_")) "token $clean" else "Bearer $clean"
     }
 
     private fun parseHttpError(code: Int, rawError: String?): String {
         return when (code) {
-            401 -> "Invalid GitHub Token (HTTP 401 Unauthorized). Please check your PAT in Settings."
-            404 -> "Gist Not Found (HTTP 404). Check Gist ID or tap Auto-Create Gist."
-            403 -> "Access Denied (HTTP 403). Ensure token has 'gist' permission scope."
+            401 -> "Invalid GitHub Token (401 Unauthorized). Please check your token & 'gist' permission in Settings."
+            404 -> "Gist Not Found (404). Verify Gist ID or tap Auto-Create Gist."
+            403 -> "Access Denied (403). Ensure GitHub Token has 'gist' scope enabled."
             else -> "HTTP $code: ${rawError ?: "GitHub API Error"}"
         }
     }
@@ -96,8 +101,13 @@ class ExpenseRepository(
         repositoryScope.launch {
             _syncState.value = SyncState.Syncing
             try {
-                val gistId = secureStorage.getGistId()
-                val response = apiService.getGist(gistId, getAuthHeader())
+                val gistId = secureStorage.getGistId().trim()
+                var response = apiService.getGist(gistId, getPrimaryAuthHeader())
+
+                // Retry with fallback auth format if primary returns 401
+                if (response.code() == 401) {
+                    response = apiService.getGist(gistId, getFallbackAuthHeader())
+                }
 
                 if (response.isSuccessful && response.body() != null) {
                     val gist = response.body()!!
@@ -145,7 +155,7 @@ class ExpenseRepository(
 
         _syncState.value = SyncState.Syncing
         try {
-            val gistId = secureStorage.getGistId()
+            val gistId = secureStorage.getGistId().trim()
             val container = ExpenseContainer(expenses = _expenses.value)
             val jsonContent = gson.toJson(container)
 
@@ -154,7 +164,10 @@ class ExpenseRepository(
                 files = mapOf("expenses.json" to GistFileContent(content = jsonContent))
             )
 
-            val response = apiService.updateGist(gistId, getAuthHeader(), patchRequest)
+            var response = apiService.updateGist(gistId, getPrimaryAuthHeader(), patchRequest)
+            if (response.code() == 401) {
+                response = apiService.updateGist(gistId, getFallbackAuthHeader(), patchRequest)
+            }
 
             if (response.isSuccessful) {
                 val nowStr = getCurrentTimestamp()
@@ -178,12 +191,11 @@ class ExpenseRepository(
     suspend fun createNewGist(token: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             val cleanToken = token.trim()
-            val formattedToken = when {
-                cleanToken.startsWith("Bearer ", ignoreCase = true) -> cleanToken
-                cleanToken.startsWith("token ", ignoreCase = true) -> cleanToken
-                cleanToken.startsWith("github_pat_") -> "Bearer $cleanToken"
-                else -> "token $cleanToken"
-            }
+                .replace("^(token|bearer)\\s+".toRegex(RegexOption.IGNORE_CASE), "")
+                .trim()
+
+            val primaryHeader = getPrimaryAuthHeader(cleanToken)
+            val fallbackHeader = getFallbackAuthHeader(cleanToken)
 
             val container = ExpenseContainer(expenses = _expenses.value)
             val jsonContent = gson.toJson(container)
@@ -194,7 +206,11 @@ class ExpenseRepository(
                 files = mapOf("expenses.json" to GistFileContent(content = jsonContent))
             )
 
-            val response = apiService.createGist(formattedToken, createRequest)
+            var response = apiService.createGist(primaryHeader, createRequest)
+            if (response.code() == 401) {
+                response = apiService.createGist(fallbackHeader, createRequest)
+            }
+
             if (response.isSuccessful && response.body() != null) {
                 val gistId = response.body()!!.id
                 secureStorage.saveGithubToken(cleanToken)

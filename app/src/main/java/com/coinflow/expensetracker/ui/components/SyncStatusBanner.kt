@@ -101,8 +101,7 @@ fun SyncStatusBanner(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         fontFamily = FontFamily.Monospace,
-                        color = ErrorRed,
-                        maxLines = 1
+                        color = ErrorRed
                     )
                 }
                 is SyncState.Idle -> {

@@ -65,6 +65,8 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         list.filter { it.type == Expense.TYPE_SEND }.sumOf { it.amount }
     }.stateIn(viewModelScope, SharingStarted.Lazily, 0.0)
 
+    val totalExpenses: StateFlow<Double> = totalSent
+
     // Total Received (Income)
     val totalReceived: StateFlow<Double> = repository.expenses.combine(_searchQuery) { list, _ ->
         list.filter { it.type == Expense.TYPE_RECEIVE }.sumOf { it.amount }

@@ -164,7 +164,7 @@ fun AnalyticsScreen(
             }
         } else {
             items(sortedCategories) { (category, amount) ->
-                val percentage = if (totalExpenses > 0) (amount / totalExpenses).toFloat() else 0f
+                val percentage = if (totalExpenses > 0.0) (amount / totalExpenses).toFloat() else 0f
 
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column {

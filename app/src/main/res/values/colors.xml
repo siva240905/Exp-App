@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#0A0A0F</color>
+    <color name="surface_dark">#131318</color>
+    <color name="surface_card">#1F1F25</color>
+    <color name="primary_cyan">#00DBE9</color>
+    <color name="primary_cyan_bright">#00F0FF</color>
+    <color name="secondary_pink">#D05BFF</color>
+    <color name="secondary_purple">#ECB1FF</color>
+    <color name="text_white">#E4E1E9</color>
+    <color name="text_muted">#B9CACB</color>
+    <color name="border_glow">#3B494B</color>
+</resources>

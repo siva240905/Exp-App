@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Coin Flow</string>
+    <string name="dashboard">Home</string>
+    <string name="expenses">Expenses</string>
+    <string name="analytics">Analytics</string>
+    <string name="settings">Settings</string>
+    <string name="gist_settings">GitHub Gist Settings</string>
+    <string name="total_balance">TOTAL BALANCE</string>
+    <string name="recent_activity">RECENT ACTIVITY</string>
+    <string name="view_all">VIEW ALL</string>
+    <string name="new_entry">NEW ENTRY</string>
+    <string name="edit_entry">EDIT ENTRY</string>
+    <string name="amount">AMOUNT</string>
+    <string name="category">CATEGORY</string>
+    <string name="payment_method">PAYMENT METHOD</string>
+    <string name="description">DESCRIPTION</string>
+    <string name="confirm_transaction">CONFIRM TRANSACTION</string>
+    <string name="sync_synced">🟢 Synced</string>
+    <string name="sync_syncing">🔄 Syncing...</string>
+    <string name="sync_failed">🔴 Sync Failed</string>
+</resources>

@@ -52,12 +52,8 @@ class ExpenseRepository(
     private fun loadCachedExpenses() {
         val cachedJson = secureStorage.getCachedExpensesJson()
         if (cachedJson.isNotBlank()) {
-            try {
-                val container = gson.fromJson(cachedJson, ExpenseContainer::class.java)
-                _expenses.value = (container?.expenses ?: emptyList()).sortedByDescending { it.date }
-            } catch (e: Exception) {
-                _expenses.value = emptyList()
-            }
+            val list = parseJsonToExpenses(cachedJson)
+            _expenses.value = list.sortedByDescending { it.date }
         }
     }
 
@@ -65,6 +61,120 @@ class ExpenseRepository(
         val container = ExpenseContainer(expenses = list)
         val json = gson.toJson(container)
         secureStorage.saveCachedExpensesJson(json)
+    }
+
+    fun parseJsonToExpenses(jsonStr: String): List<Expense> {
+        if (jsonStr.isBlank()) return emptyList()
+        val list = mutableListOf<Expense>()
+        try {
+            val jsonElement = com.google.gson.JsonParser.parseString(jsonStr)
+            if (jsonElement.isJsonObject) {
+                val jsonObject = jsonElement.asJsonObject
+                val arrayElement = jsonObject.getAsJsonArray("transactions")
+                    ?: jsonObject.getAsJsonArray("expenses")
+
+                if (arrayElement != null) {
+                    for (element in arrayElement) {
+                        if (!element.isJsonObject) continue
+                        val obj = element.asJsonObject
+
+                        val id = if (obj.has("id") && !obj.get("id").isJsonNull) obj.get("id").asString else java.util.UUID.randomUUID().toString()
+                        val rawType = if (obj.has("type") && !obj.get("type").isJsonNull) obj.get("type").asString else Expense.TYPE_SEND
+                        val type = when (rawType.lowercase()) {
+                            "expense", "send", "debit" -> Expense.TYPE_SEND
+                            "income", "receive", "credit" -> Expense.TYPE_RECEIVE
+                            else -> Expense.TYPE_SEND
+                        }
+
+                        val amount = if (obj.has("amount") && !obj.get("amount").isJsonNull) obj.get("amount").asDouble else 0.0
+                        val date = if (obj.has("date") && !obj.get("date").isJsonNull) obj.get("date").asString else SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val category = if (obj.has("category") && !obj.get("category").isJsonNull) obj.get("category").asString else "Other"
+
+                        val paymentMethod = when {
+                            obj.has("method") && !obj.get("method").isJsonNull -> obj.get("method").asString
+                            obj.has("paymentMethod") && !obj.get("paymentMethod").isJsonNull -> obj.get("paymentMethod").asString
+                            else -> "Bank Transfer"
+                        }
+
+                        val description = when {
+                            obj.has("note") && !obj.get("note").isJsonNull -> obj.get("note").asString
+                            obj.has("description") && !obj.get("description").isJsonNull -> obj.get("description").asString
+                            else -> ""
+                        }
+
+                        list.add(
+                            Expense(
+                                id = id,
+                                amount = amount,
+                                category = category,
+                                description = description,
+                                date = date,
+                                paymentMethod = paymentMethod,
+                                type = type
+                            )
+                        )
+                    }
+                }
+            } else if (jsonElement.isJsonArray) {
+                val arrayElement = jsonElement.asJsonArray
+                for (element in arrayElement) {
+                    if (!element.isJsonObject) continue
+                    val obj = element.asJsonObject
+                    val id = if (obj.has("id") && !obj.get("id").isJsonNull) obj.get("id").asString else java.util.UUID.randomUUID().toString()
+                    val rawType = if (obj.has("type") && !obj.get("type").isJsonNull) obj.get("type").asString else Expense.TYPE_SEND
+                    val type = when (rawType.lowercase()) {
+                        "expense", "send", "debit" -> Expense.TYPE_SEND
+                        "income", "receive", "credit" -> Expense.TYPE_RECEIVE
+                        else -> Expense.TYPE_SEND
+                    }
+
+                    val amount = if (obj.has("amount") && !obj.get("amount").isJsonNull) obj.get("amount").asDouble else 0.0
+                    val date = if (obj.has("date") && !obj.get("date").isJsonNull) obj.get("date").asString else SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    val category = if (obj.has("category") && !obj.get("category").isJsonNull) obj.get("category").asString else "Other"
+
+                    val paymentMethod = when {
+                        obj.has("method") && !obj.get("method").isJsonNull -> obj.get("method").asString
+                        obj.has("paymentMethod") && !obj.get("paymentMethod").isJsonNull -> obj.get("paymentMethod").asString
+                        else -> "Bank Transfer"
+                    }
+
+                    val description = when {
+                        obj.has("note") && !obj.get("note").isJsonNull -> obj.get("note").asString
+                        obj.has("description") && !obj.get("description").isJsonNull -> obj.get("description").asString
+                        else -> ""
+                    }
+
+                    list.add(
+                        Expense(
+                            id = id,
+                            amount = amount,
+                            category = category,
+                            description = description,
+                            date = date,
+                            paymentMethod = paymentMethod,
+                            type = type
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun importJsonData(jsonStr: String): Int {
+        val parsedList = parseJsonToExpenses(jsonStr)
+        if (parsedList.isNotEmpty()) {
+            val sortedList = parsedList.sortedByDescending { it.date }
+            _expenses.value = sortedList
+            saveLocalCache(sortedList)
+            if (hasCredentials()) {
+                pushToGist()
+            }
+            return sortedList.size
+        }
+        return 0
     }
 
     private fun getPrimaryAuthHeader(token: String = secureStorage.getGithubToken()): String {
@@ -114,8 +224,7 @@ class ExpenseRepository(
                     val file = gist.files["expenses.json"] ?: gist.files.values.firstOrNull()
 
                     if (file != null && !file.content.isNullOrBlank()) {
-                        val container = gson.fromJson(file.content, ExpenseContainer::class.java)
-                        val newList = (container?.expenses ?: emptyList()).sortedByDescending { it.date }
+                        val newList = parseJsonToExpenses(file.content).sortedByDescending { it.date }
 
                         withContext(Dispatchers.Main) {
                             _expenses.value = newList

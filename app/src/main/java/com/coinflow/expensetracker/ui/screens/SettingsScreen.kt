@@ -322,6 +322,73 @@ fun SettingsScreen(
             }
         }
 
+        // Direct JSON Restore / Import Section
+        item {
+            var jsonInput by remember { mutableStateOf("") }
+            var isImporting by remember { mutableStateOf(false) }
+
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "DIRECT JSON DATA IMPORT",
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = PrimaryCyanBright,
+                        letterSpacing = 1.sp
+                    )
+
+                    Text(
+                        text = "If cloud sync has token errors, paste your raw JSON transactions below to restore all data directly into the app.",
+                        fontSize = 12.sp,
+                        color = TextVariant
+                    )
+
+                    OutlinedTextField(
+                        value = jsonInput,
+                        onValueChange = { jsonInput = it },
+                        label = { Text("Paste JSON Data here...", color = TextVariant) },
+                        placeholder = { Text("{\"transactions\": [...]}", color = TextVariant) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryCyanBright,
+                            unfocusedBorderColor = BorderOutline,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+
+                    Button(
+                        onClick = {
+                            if (jsonInput.isBlank()) {
+                                Toast.makeText(context, "Please paste JSON data first", Toast.LENGTH_SHORT).show()
+                            } else {
+                                isImporting = true
+                                viewModel.importJsonData(jsonInput) { success, msg ->
+                                    isImporting = false
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    if (success) {
+                                        jsonInput = ""
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isImporting,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyanBright)
+                    ) {
+                        Text(
+                            text = if (isImporting) "IMPORTING..." else "IMPORT TRANSACTIONS JSON",
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = BackgroundDark
+                        )
+                    }
+                }
+            }
+        }
+
         item { Spacer(modifier = Modifier.height(90.dp)) }
     }
 }

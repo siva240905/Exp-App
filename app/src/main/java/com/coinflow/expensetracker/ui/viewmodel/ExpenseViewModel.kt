@@ -171,6 +171,21 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
         gistId.value = ""
     }
 
+    fun importJsonData(jsonStr: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val count = repository.importJsonData(jsonStr)
+                if (count > 0) {
+                    onResult(true, "Successfully imported $count transactions!")
+                } else {
+                    onResult(false, "Could not parse transactions from JSON. Check format.")
+                }
+            } catch (e: Exception) {
+                onResult(false, e.localizedMessage ?: "Import failed")
+            }
+        }
+    }
+
     fun formatINR(amount: Double): String {
         val formatter = java.text.NumberFormat.getCurrencyInstance(Locale("en", "IN"))
         return formatter.format(amount).replace("INR", "₹")

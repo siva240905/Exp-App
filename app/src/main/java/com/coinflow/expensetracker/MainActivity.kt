@@ -61,30 +61,34 @@ fun MainAppContent(viewModel: ExpenseViewModel) {
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(
-                currentRoute = currentRoute,
-                onNavigate = { route -> currentRoute = route }
-            )
+            if (!showAddModal) {
+                BottomNavigationBar(
+                    currentRoute = currentRoute,
+                    onNavigate = { route -> currentRoute = route }
+                )
+            }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    expenseToEdit = null
-                    initialType = Expense.TYPE_SEND
-                    showAddModal = true
-                },
-                shape = CircleShape,
-                containerColor = PrimaryCyanBright,
-                contentColor = BackgroundDark,
-                modifier = Modifier
-                    .size(56.dp)
-                    .padding(bottom = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Expense",
-                    modifier = Modifier.size(28.dp)
-                )
+            if (!showAddModal) {
+                FloatingActionButton(
+                    onClick = {
+                        expenseToEdit = null
+                        initialType = Expense.TYPE_SEND
+                        showAddModal = true
+                    },
+                    shape = CircleShape,
+                    containerColor = PrimaryCyanBright,
+                    contentColor = BackgroundDark,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .padding(bottom = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Expense",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         },
         containerColor = BackgroundDark
@@ -92,7 +96,7 @@ fun MainAppContent(viewModel: ExpenseViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(if (showAddModal) androidx.compose.foundation.layout.PaddingValues(0.dp) else innerPadding)
                 .background(BackgroundDark)
         ) {
             when (currentRoute) {

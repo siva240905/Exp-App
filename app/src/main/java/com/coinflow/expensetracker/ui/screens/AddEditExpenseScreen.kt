@@ -105,261 +105,268 @@ fun AddEditExpenseScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(bottom = 12.dp)
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = TextVariant
-                    )
-                }
-
-                Text(
-                    text = if (expenseToEdit == null) "NEW ENTRY" else "EDIT ENTRY",
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryCyanBright,
-                    letterSpacing = 2.sp
-                )
-
-                if (expenseToEdit != null) {
-                    IconButton(
-                        onClick = {
-                            viewModel.deleteExpense(expenseToEdit.id)
-                            onDismiss()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = ErrorRed
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.width(48.dp))
-                }
-            }
-
-            // Type Toggle (SEND vs RECEIVE)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val isSend = selectedType == Expense.TYPE_SEND
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSend) PrimaryCyanBright.copy(alpha = 0.25f) else SurfaceContainer)
-                        .border(1.dp, if (isSend) PrimaryCyanBright else BorderOutline, RoundedCornerShape(12.dp))
-                        .clickable { selectedType = Expense.TYPE_SEND }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowOutward,
-                            contentDescription = "Send",
-                            tint = if (isSend) PrimaryCyanBright else TextVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "SEND (Debit)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (isSend) PrimaryCyanBright else TextVariant
-                        )
-                    }
-                }
-
-                val isReceive = selectedType == Expense.TYPE_RECEIVE
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isReceive) SecondaryPink.copy(alpha = 0.25f) else SurfaceContainer)
-                        .border(1.dp, if (isReceive) SecondaryPink else BorderOutline, RoundedCornerShape(12.dp))
-                        .clickable { selectedType = Expense.TYPE_RECEIVE }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = "Receive",
-                            tint = if (isReceive) SecondaryPink else TextVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "RECEIVE (Credit)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (isReceive) SecondaryPink else TextVariant
-                        )
-                    }
-                }
-            }
-
-            // Amount Display & Category Selection
+            // Scrollable upper section (Header, Type Toggle, Amount Display, Category & Payment)
             Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .androidx.compose.foundation.verticalScroll(androidx.compose.foundation.rememberScrollState())
             ) {
-                Text(
-                    text = "AMOUNT",
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    color = TextVariant,
-                    letterSpacing = 1.5.sp
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+                // Header
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = TextVariant
+                        )
+                    }
+
                     Text(
-                        text = "₹",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = if (expenseToEdit == null) "NEW ENTRY" else "EDIT ENTRY",
+                        fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
-                        color = TextVariant,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = if (amountStr == "0") "0.00" else amountStr,
-                        fontSize = 44.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = if (selectedType == Expense.TYPE_RECEIVE) SecondaryPink else PrimaryCyanBright
+                        color = PrimaryCyanBright,
+                        letterSpacing = 2.sp
                     )
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Category Chips
-                Text(
-                    text = "CATEGORY",
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    color = TextVariant,
-                    letterSpacing = 1.5.sp
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    categories.forEach { item ->
-                        val isSelected = selectedCategory.equals(item.name, ignoreCase = true)
-                        val chipBg = if (isSelected) PrimaryCyanBright.copy(alpha = 0.2f) else SurfaceContainer
-                        val chipBorder = if (isSelected) PrimaryCyanBright else BorderOutline
-                        val contentColor = if (isSelected) PrimaryCyanBright else TextVariant
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(chipBg)
-                                .border(1.dp, chipBorder, RoundedCornerShape(12.dp))
-                                .clickable { selectedCategory = item.name }
-                                .padding(vertical = 10.dp)
+                    if (expenseToEdit != null) {
+                        IconButton(
+                            onClick = {
+                                viewModel.deleteExpense(expenseToEdit.id)
+                                onDismiss()
+                            }
                         ) {
                             Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.name,
-                                tint = if (isSelected) PrimaryCyanBright else SecondaryPink,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = item.name,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = contentColor
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = ErrorRed
                             )
                         }
+                    } else {
+                        Spacer(modifier = Modifier.width(48.dp))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Payment Method Selector
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                // Type Toggle (SEND vs RECEIVE)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(paymentMethods) { method ->
-                        val isSelected = selectedPaymentMethod == method
-                        val chipBg = if (isSelected) PrimaryCyanBright.copy(alpha = 0.2f) else SurfaceContainer
-                        val chipBorder = if (isSelected) PrimaryCyanBright else BorderOutline
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(chipBg)
-                                .border(1.dp, chipBorder, RoundedCornerShape(20.dp))
-                                .clickable { selectedPaymentMethod = method }
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
+                    val isSend = selectedType == Expense.TYPE_SEND
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSend) PrimaryCyanBright.copy(alpha = 0.25f) else SurfaceContainer)
+                            .border(1.dp, if (isSend) PrimaryCyanBright else BorderOutline, RoundedCornerShape(12.dp))
+                            .clickable { selectedType = Expense.TYPE_SEND }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowOutward,
+                                contentDescription = "Send",
+                                tint = if (isSend) PrimaryCyanBright else TextVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = method,
-                                fontSize = 12.sp,
+                                text = "SEND (Debit)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
-                                color = if (isSelected) PrimaryCyanBright else TextVariant
+                                color = if (isSend) PrimaryCyanBright else TextVariant
+                            )
+                        }
+                    }
+
+                    val isReceive = selectedType == Expense.TYPE_RECEIVE
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isReceive) SecondaryPink.copy(alpha = 0.25f) else SurfaceContainer)
+                            .border(1.dp, if (isReceive) SecondaryPink else BorderOutline, RoundedCornerShape(12.dp))
+                            .clickable { selectedType = Expense.TYPE_RECEIVE }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = "Receive",
+                                tint = if (isReceive) SecondaryPink else TextVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "RECEIVE (Credit)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = if (isReceive) SecondaryPink else TextVariant
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                // Amount Display & Category Selection
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "AMOUNT",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = TextVariant,
+                        letterSpacing = 1.5.sp
+                    )
 
-                // Description Input
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Note / Description (Optional)", color = TextVariant) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryCyanBright,
-                        unfocusedBorderColor = BorderOutline,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "₹",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextVariant,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                        Text(
+                            text = if (amountStr == "0") "0.00" else amountStr,
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (selectedType == Expense.TYPE_RECEIVE) SecondaryPink else PrimaryCyanBright
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Category Chips
+                    Text(
+                        text = "CATEGORY",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = TextVariant,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.forEach { item ->
+                            val isSelected = selectedCategory.equals(item.name, ignoreCase = true)
+                            val chipBg = if (isSelected) PrimaryCyanBright.copy(alpha = 0.2f) else SurfaceContainer
+                            val chipBorder = if (isSelected) PrimaryCyanBright else BorderOutline
+                            val contentColor = if (isSelected) PrimaryCyanBright else TextVariant
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(chipBg)
+                                    .border(1.dp, chipBorder, RoundedCornerShape(12.dp))
+                                    .clickable { selectedCategory = item.name }
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.name,
+                                    tint = if (isSelected) PrimaryCyanBright else SecondaryPink,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = item.name,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = contentColor
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Payment Method Selector
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(paymentMethods) { method ->
+                            val isSelected = selectedPaymentMethod == method
+                            val chipBg = if (isSelected) PrimaryCyanBright.copy(alpha = 0.2f) else SurfaceContainer
+                            val chipBorder = if (isSelected) PrimaryCyanBright else BorderOutline
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(chipBg)
+                                    .border(1.dp, chipBorder, RoundedCornerShape(20.dp))
+                                    .clickable { selectedPaymentMethod = method }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = method,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = if (isSelected) PrimaryCyanBright else TextVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Description Input
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Note / Description (Optional)", color = TextVariant) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryCyanBright,
+                            unfocusedBorderColor = BorderOutline,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
-            // Numeric Keypad & Submit Action
+            // Fixed Numeric Keypad & Submit Action at bottom
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(SurfaceContainer.copy(alpha = 0.5f))
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 CustomKeypad(
                     onKeyClick = { key ->
@@ -379,7 +386,7 @@ fun AddEditExpenseScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Button(
                     onClick = {
@@ -416,7 +423,7 @@ fun AddEditExpenseScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedType == Expense.TYPE_RECEIVE) SecondaryPink else PrimaryCyanBright
